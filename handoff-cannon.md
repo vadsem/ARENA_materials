@@ -1,6 +1,6 @@
 # Handoff: cache [1.3.1] Linear Probes activations on Cannon
 
-Written 2026-10-08 on makena, for a Claude Code session on Cannon. Read `_Claude/CLAUDE.md` first.
+Written 2026-10-08 on makena, for a Claude Code session on Cannon. `CLAUDE.md` (auto-loaded) has the project context.
 
 ## Goal
 
