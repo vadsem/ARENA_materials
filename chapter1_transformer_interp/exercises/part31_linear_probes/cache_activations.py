@@ -12,7 +12,7 @@ Stages and outputs (one or more .pt files per stage in --out):
     got           Llama-2-13b-hf. got.pt: last-token activations at ALL layers for cities, sp_en_trans,
                   larger_than, neg_cities, plus reference few-shot / causal-intervention results.
     deception8b   Llama-3.1-8B-Instruct. deception8b.pt: instructed-pairs activations (mean over
-                  assistant tokens, all layers, all 512 true facts in CSV order), per-token AI Liar
+                  assistant tokens, all layers, all 306 true facts in CSV order), per-token AI Liar
                   activations (all layers), plus reference steering generations.
     highstakes    Llama-3.1-8B-Instruct. highstakes_{train,test,ood_<cfg>}.pt: full-sequence layer-16
                   activations (padded to 256 tokens) for the models-under-pressure dataset.
@@ -73,10 +73,16 @@ def save(obj, path: Path) -> None:
     log(f"saved {path} ({path.stat().st_size / 1e9:.2f} GB)")
 
 
-def load_model(name: str, **kwargs):
+def load_model(name: str, max_gpu_memory: str | None = None, **kwargs):
     log(f"loading {name}")
     tokenizer = AutoTokenizer.from_pretrained(name)
     kwargs.setdefault("dtype", t.bfloat16)
+    if max_gpu_memory:  # cap weights per GPU (rest offloaded to CPU), leaving room for activations
+        import psutil
+
+        cpu = f"{int(psutil.virtual_memory().available / 2**30)}GiB"
+        kwargs["max_memory"] = {**{i: max_gpu_memory for i in range(t.cuda.device_count())}, "cpu": cpu}
+        log(f"max_memory={kwargs['max_memory']}")
     model = AutoModelForCausalLM.from_pretrained(name, device_map="auto", **kwargs)
     model.eval()
     tokenizer.pad_token = tokenizer.eos_token
@@ -151,7 +157,7 @@ def intervention_p_diffs(statements, model, tokenizer, direction, layers, scale,
 
 
 def stage_got(args) -> None:
-    model, tokenizer = load_model(args.got_model)
+    model, tokenizer = load_model(args.got_model, args.max_gpu_memory)
     result = {"model": args.got_model, "probe_layer": PROBE_LAYER, "intervene_layer": INTERVENE_LAYER, "datasets": {}}
 
     for name in GOT_DATASET_NAMES:
@@ -457,6 +463,10 @@ def main() -> None:
     parser.add_argument("--got-model", default="meta-llama/Llama-2-13b-hf")
     parser.add_argument("--instruct-model", default="meta-llama/Llama-3.1-8B-Instruct")
     parser.add_argument("--big-model", default="meta-llama/Llama-3.3-70B-Instruct")
+    parser.add_argument(
+        "--max-gpu-memory", default=None,
+        help="Cap on model weights per GPU, e.g. 14GiB; the rest is offloaded to CPU (for small GPUs / MIG slices)",
+    )
     args = parser.parse_args()
 
     load_dotenv(exercises_dir / ".env")
@@ -467,7 +477,7 @@ def main() -> None:
     if "got" in args.stages:
         stage_got(args)
     if "deception8b" in args.stages or "highstakes" in args.stages:
-        model, tokenizer = load_model(args.instruct_model)
+        model, tokenizer = load_model(args.instruct_model, args.max_gpu_memory)
         if "deception8b" in args.stages:
             stage_deception8b(args, model, tokenizer)
         if "highstakes" in args.stages:

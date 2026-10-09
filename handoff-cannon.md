@@ -74,7 +74,7 @@ mirror `solutions.py` so that results on makena match the course. Fix real bugs 
 | File | Contents | Approx. size |
 |------|----------|--------------|
 | `got.pt` | Llama-2-13b; per dataset (cities 1496, sp_en_trans 354, larger_than 1980, neg_cities 1496): `statements`, `labels`, `acts` [n, 40, 5120] bf16; `reference` few-shot / intervention p_diffs | 2.2 GB |
-| `deception8b.pt` | Llama-3.1-8B-Instruct; `honest_acts`, `dishonest_acts` [512, 32, 4096]; `ai_liar` list of 54 dialogues with `acts` [seq, 32, 4096], `str_tokens`, `assistant_mask`; `reference` MM direction + steering generations | ~2 GB |
+| `deception8b.pt` | Llama-3.1-8B-Instruct; `honest_acts`, `dishonest_acts` [306, 32, 4096] (the CSV has 306 true facts); `ai_liar` list of 54 dialogues with `acts` [seq, 32, 4096], `str_tokens`, `assistant_mask`; `reference` MM direction + steering generations | ~2 GB |
 | `highstakes_train.pt` / `_test.pt` | layer-16 `acts` [3000 / 1000, 256, 4096] bf16, `masks`, `labels`, `texts`, `indices` | 6.3 / 2.1 GB |
 | `highstakes_ood_anthropic_hh_balanced.pt` / `_toolace_balanced.pt` | same format, 2984 / 734 examples | 6.3 / 1.5 GB |
 | `deception70b.pt` | Llama-3.3-70B int8; `ai_liar` with layer-22 `acts` [seq, 8192] fp16 and `detector_scores` [seq]; `detector` | ~0.2 GB |
